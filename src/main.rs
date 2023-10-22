@@ -1,39 +1,19 @@
-use rlua::{Lua, Table, Value};
-use serde::Deserialize;
-
-#[derive(Debug, Deserialize)]
-pub struct Config {
-    pub rootdir: String,
-    pub debug: bool,
-}
-
+use lua_interface::from_lua;
 fn main() {
-    // Create a Lua context.
-    let lua = Lua::new();
+    let lua_code = r#"
+      Config = {
+        rootdir = "/abc/123",
+        debug = true,
+      }
+  "#;
 
-    // Load and execute the Lua config file.
-    lua.context(|lua_ctx| {
-        lua_ctx
-            .load(
-                r#"
-            Config = {
-              rootdir = "/abc/123",
-              debug = true,
-            }
-            "#,
-            )
-            .exec()
-            .unwrap();
-        // Get the Config table
-        let config_table: Table = lua_ctx.globals().get("Config").unwrap();
-
-        // Extract values from the table and construct the Config struct
-        let rust_config = Config {
-            rootdir: config_table.get::<_, String>("rootdir").unwrap(),
-            debug: config_table.get::<_, bool>("debug").unwrap(),
-        };
-
-        // Use the Rust Config struct
-        println!("{:?}", rust_config);
-    });
+    match from_lua(lua_code) {
+        Ok(rust_config) => {
+            // Use the Rust Config struct
+            println!("{:?}", rust_config);
+        }
+        Err(err) => {
+            eprintln!("Error parsing Lua config: {:?}", err);
+        }
+    }
 }
